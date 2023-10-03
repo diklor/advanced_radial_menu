@@ -60,7 +60,7 @@ class_name RadialMenuAdvanced
 
 
 
-signal slot_selected(slot: Control,  index: int)
+signal slot_selected(slot,  index: int)
 signal selection_canceled
 
 
@@ -323,7 +323,7 @@ func _process(_delta):
 func _input(event):
 	if event.is_action_pressed(select_action_name): 
 		if selection != -2:
-			emit_signal('slot_selected', get_child(selection), selection)
+			emit_signal('slot_selected', childs(selection)if childs.has(selection)else null, selection)
 	
 	if event.is_action_pressed('ui_cancel'):
 		emit_signal('selection_canceled')
