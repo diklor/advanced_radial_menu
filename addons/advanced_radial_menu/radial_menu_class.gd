@@ -72,6 +72,7 @@ var viewport_size:Vector2
 var selection := -2
 var child_count := 0
 var delta := 0.0
+var childs := {}
 
 var radius := 0
 var offset := Vector2.ZERO
@@ -131,9 +132,10 @@ func calc_by_stroke_type(width, type:STROKE_TYPE):
 
 
 
-func draw_child(i, texture_offset = Vector2.ZERO):
+func draw_child(i:int, texture_offset = Vector2.ZERO, i_default:int = 0):
 	var child = get_child(i)as Control
 	if child:
+		childs[str(i_default)] = child
 		if child_count == 1:			texture_offset = Vector2.ZERO
 		
 		var factor := 1.0
@@ -166,6 +168,7 @@ func _draw():
 	
 	
 	radius = int(smallest)
+	childs.clear()
 	
 	if auto_sizing:
 			if radius <= smallest:
@@ -260,11 +263,11 @@ func _draw():
 				)
 			
 			
-			draw_child(i + (1 if first_in_center else -1), draw_pos)
+			draw_child(i + (1 if first_in_center else -1), draw_pos, i)
 	
 	
 	if first_in_center and (child_count > 0):
-		draw_child(0)
+		draw_child(0, -1)
 	
 	
 	
@@ -319,9 +322,9 @@ func _process(_delta):
 
 func _input(event):
 	if event.is_action_pressed(select_action_name): 
-		if selection >= 0:
+		if selection != -2:
 			emit_signal('slot_selected', get_child(selection), selection)
 	
-	if event.is_action_pressed('ui_cancel')and G.is_last_esc('radiomenu'):
+	if event.is_action_pressed('ui_cancel'):
 		emit_signal('selection_canceled')
 	
