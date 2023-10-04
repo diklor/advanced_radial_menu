@@ -309,7 +309,7 @@ func _process(_delta):
 			if mouse_radius < radius:
 				selection= 0
 		else:
-			var mouse_rads = fposmod(-mouse_pos.angle(), TAU)
+			var mouse_rads = fposmod(-mouse_pos.angle(), TAU) + deg_to_rad(line_rotation_offset)
 			
 			
 			selection = wrap(      ceil(((mouse_rads / TAU) * child_count)),   0,    child_count      )
