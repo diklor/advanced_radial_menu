@@ -147,7 +147,7 @@ func draw_child(i:int, texture_offset = Vector2.ZERO, i_default:int = 0):
 			
 		
 		child._set_size.call_deferred(Vector2.ONE * children_size * factor)
-		child.position = (offset - child.size / 2.0) + texture_offset
+		child.position = (offset - (child.size / 2.0)) + texture_offset
 		child.pivot_offset = child.size / 2.0
 		
 		
@@ -267,7 +267,7 @@ func _draw():
 	
 	
 	if first_in_center and (child_count > 0):
-		draw_child(0, -1)
+		draw_child(0, Vector2.ZERO, -1)
 	
 	
 	
