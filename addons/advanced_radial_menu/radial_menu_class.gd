@@ -135,7 +135,11 @@ func calc_by_stroke_type(width, type:STROKE_TYPE):
 
 
 func draw_child(i:int, texture_offset = Vector2.ZERO, i_default:int = 0):
-	var child = get_child(i)as Control
+	var children := []
+	for v in get_children():
+		if (v as Control).visible:		children.append(v)
+	
+	var child = (children[i]as Control) if i <= children.size() else null
 	if child:
 		childs[str(i_default)] = child
 		if child_count == 1:			texture_offset = Vector2.ZERO
@@ -197,11 +201,13 @@ func _draw():
 	
 	
 	
-	child_count = get_child_count()
+	child_count = 0
+	for v in get_children():
+		if v.visible:		child_count +=1
+	
 	if first_in_center and (child_count > 0):
 		child_count -= 1
 	line_rotation_offset = ((360 / float(child_count)) * slots_offset) + line_rotation_offset_default
-	print(line_rotation_offset)
 	
 	var rads_offset := 0.0
 	if ROT_OFFSETS.has(str(child_count)):
@@ -287,7 +293,6 @@ func _draw():
 
 
 
-var mouse_pos
 func _process(_delta):
 	if radius < 2:		return
 	
@@ -299,7 +304,7 @@ func _process(_delta):
 		var pos_offset = viewport_size - (size + position)
 		var size_offset = (viewport_size/2.0 - (offset - circle_offset))
 		
-		mouse_pos = (get_global_mouse_position() - viewport_size / 2.0) - size_offset + pos_offset - circle_offset
+		var mouse_pos = (get_global_mouse_position() - viewport_size / 2.0) - size_offset + pos_offset - circle_offset
 		
 		
 		var mouse_radius = mouse_pos.length()
@@ -326,8 +331,6 @@ func _process(_delta):
 func _input(event):
 	if event.is_action_pressed(select_action_name): 
 		if selection != -2:
-			print(event)
-			print(childs[str(selection)])
 			emit_signal('slot_selected', childs[str(selection)]if childs.has(str(selection))else null, selection)
 	
 	if event.is_action_pressed('ui_cancel'):
