@@ -118,13 +118,13 @@ func _set_auto_radius(val):
 
 
 const ROT_OFFSETS = {
-	'3' = deg_to_rad(30),
-	'5' = deg_to_rad(54),
-	'7' = deg_to_rad(13),
-	'9' = deg_to_rad(30),
-	'11' = deg_to_rad(8),
-	'13' = deg_to_rad(20),
-	'15' = deg_to_rad(6),
+	3 : deg_to_rad(30),
+	5 : deg_to_rad(54),
+	7 : deg_to_rad(13),
+	9 : deg_to_rad(30),
+	11 : deg_to_rad(8),
+	13 : deg_to_rad(20),
+	15 : deg_to_rad(6),
 }
 
 
@@ -210,8 +210,8 @@ func _draw():
 	line_rotation_offset = ((360 / float(child_count)) * slots_offset) + line_rotation_offset_default
 	
 	var rads_offset := 0.0
-	if ROT_OFFSETS.has(str(child_count)):
-		rads_offset = (ROT_OFFSETS[str(child_count)]as float)
+	if ROT_OFFSETS.has(child_count):
+		rads_offset = (ROT_OFFSETS[child_count]as float)
 	
 	
 	if child_count > 0:
