@@ -10,6 +10,7 @@ class_name RadialMenuAdvanced
 ##Is mouse hover and selection enabled. Works only with "Enabled"
 @export										var mouse_enabled : bool = true:					set = _set_mouse_enabled
 @export										var first_in_center : bool = false
+@export										var slots_offset : int = 0
 @export_group('Base Circle')
 @export										var circle_offset:Vector2
 @export										var color:Color = Color(0,0,0, 0.3) 
@@ -26,7 +27,7 @@ class_name RadialMenuAdvanced
 @export										var arc_antialiased:bool = true
 
 @export_group('Line', 'line_')
-@export										var line_rotation_offset:int = 0
+@export										var line_rotation_offset_default:int = 0
 @export										var line_color:Color = Color.WHITE
 @export_range(1, 256)						var line_width:int = 6
 @export										var line_antialised:bool = true
@@ -75,6 +76,7 @@ var delta := 0.0
 var childs := {}
 
 var radius := 0
+var line_rotation_offset := 0
 var offset := Vector2.ZERO
 
 
@@ -198,6 +200,8 @@ func _draw():
 	child_count = get_child_count()
 	if first_in_center and (child_count > 0):
 		child_count -= 1
+	line_rotation_offset = ((360 / float(child_count)) * slots_offset) + line_rotation_offset_default
+	print(line_rotation_offset)
 	
 	var rads_offset := 0.0
 	if ROT_OFFSETS.has(str(child_count)):
@@ -210,6 +214,7 @@ func _draw():
 			rads += rads_offset + deg_to_rad(line_rotation_offset)
 			
 			i += 1
+			
 			
 			
 			var starts_rads = ((TAU * (i - 1)) / child_count) - rads_offset
@@ -298,8 +303,6 @@ func _process(_delta):
 		
 		
 		var mouse_radius = mouse_pos.length()
-		mouse_radius += deg_to_rad(line_rotation_offset)
-		
 		
 		selection = -2
 		if mouse_radius < arc_inner_radius:
@@ -311,8 +314,8 @@ func _process(_delta):
 		else:
 			var mouse_rads = fposmod(-mouse_pos.angle(), TAU) + deg_to_rad(line_rotation_offset)
 			
-			
 			selection = wrap(      ceil(((mouse_rads / TAU) * child_count)),   0,    child_count      )
+	
 	
 	queue_redraw()
 
