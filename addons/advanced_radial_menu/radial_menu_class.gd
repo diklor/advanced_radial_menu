@@ -26,7 +26,7 @@ class_name RadialMenuAdvanced
 @export										var arc_antialiased:bool = true
 
 @export_group('Line', 'line_')
-@export_range(-360, 360, 1)					var line_rotation_offset:int = 0
+@export										var line_rotation_offset:int = 0
 @export										var line_color:Color = Color.WHITE
 @export_range(1, 256)						var line_width:int = 6
 @export										var line_antialised:bool = true
