@@ -5,6 +5,7 @@ class_name RadialMenuAdvanced
 
 ##Draws layer every frame, will be disabled on start
 @export										var select_action_name : String = 'fire'
+@export										var action_released : bool = false
 @export										var enabled : bool = true:							set = _set_drawing
 @export										var auto_sizing : bool = true
 ##Is mouse hover and selection enabled. Works only with "Enabled"
@@ -36,6 +37,7 @@ class_name RadialMenuAdvanced
 @export_range(1, 1024, 1)					var children_size:int = 256
 @export										var children_auto_sizing:bool = false
 @export_range(0, 2, 0.1)					var children_auto_sizing_factor:float = 1.0
+@export										var children_offset:Vector2
 @export										var children_rotate:bool = false:					set = _set_children_rotate
 
 @export_group('Hover', 'hover_')
@@ -104,7 +106,7 @@ func _set_children_rotate(val:bool):
 	children_rotate = val
 	if !val:
 		for v in get_children():
-			if v is Control:
+			if (v is Control) and v.visible:
 				v.rotation = 0
 		
 
@@ -137,7 +139,7 @@ func calc_by_stroke_type(width, type:STROKE_TYPE):
 func draw_child(i:int, texture_offset = Vector2.ZERO, i_default:int = 0):
 	var children := []
 	for v in get_children():
-		if (v as Control).visible:		children.append(v)
+		if (v is Control) and v.visible:		children.append(v)
 	
 	var child = (children[i]as Control) if i <= children.size() else null
 	if child:
@@ -153,7 +155,7 @@ func draw_child(i:int, texture_offset = Vector2.ZERO, i_default:int = 0):
 			
 		
 		child._set_size.call_deferred(Vector2.ONE * children_size * factor)
-		child.position = (offset - (child.size / 2.0)) + texture_offset
+		child.position = (offset - (child.size / 2.0)) + texture_offset + children_offset
 		child.pivot_offset = child.size / 2.0
 		
 		
@@ -203,7 +205,7 @@ func _draw():
 	
 	child_count = 0
 	for v in get_children():
-		if v.visible:		child_count +=1
+		if (v is Control) and v.visible:		child_count +=1
 	
 	if first_in_center and (child_count > 0):
 		child_count -= 1
@@ -329,7 +331,7 @@ func _process(_delta):
 
 
 func _input(event):
-	if event.is_action_pressed(select_action_name): 
+	if (event.is_action_released(select_action_name)if action_released else event.is_action_pressed(select_action_name)): 
 		if selection != -2:
 			emit_signal('slot_selected', childs[str(selection)]if childs.has(str(selection))else null, selection)
 	
