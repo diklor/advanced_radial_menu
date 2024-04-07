@@ -81,9 +81,11 @@ var radius := 0
 var line_rotation_offset := 0
 var offset := Vector2.ZERO
 
+var rads_offset := 0.0
 
 
-func _ready():
+
+func _ready() -> void:
 	viewport_size = Vector2(
 		ProjectSettings.get('display/window/size/viewport_width'),
 		ProjectSettings.get('display/window/size/viewport_height')
@@ -91,26 +93,28 @@ func _ready():
 
 
 
-func _set_drawing(val:bool):
+func _set_drawing(val: bool) -> void:
 	enabled = val
 	set_process(val)
 	set_process_unhandled_input(mouse_enabled if val else false)
 
 
-func _set_mouse_enabled(val:bool):
+func _set_mouse_enabled(val: bool) -> void:
 	mouse_enabled = val
 	set_process_unhandled_input(val)
 	if !val:		selection = -1
 
-func _set_children_rotate(val:bool):
+
+func _set_children_rotate(val: bool) -> void:
 	children_rotate = val
 	if !val:
-		for v in get_children():
+		for v: Node in get_children():
 			if (v is Control) and v.visible:
 				v.rotation = 0
-		
 
-func _set_auto_radius(val):
+
+
+func _set_auto_radius(val) -> void:
 	if val:
 		radius = int(viewport_size.y / 2.5)
 
@@ -119,7 +123,7 @@ func _set_auto_radius(val):
 
 
 
-const ROT_OFFSETS = {
+const ROT_OFFSETS: Dictionary = { #Dictionary[int, float]
 	3 : deg_to_rad(30),
 	5 : deg_to_rad(54),
 	7 : deg_to_rad(13),
@@ -131,24 +135,30 @@ const ROT_OFFSETS = {
 
 
 
-func calc_by_stroke_type(width, type:STROKE_TYPE):
-	return (((width / 2.0) * (-1 if type == STROKE_TYPE.INNER else 1)) if (type != STROKE_TYPE.OUTLINE)else 0.0)
+func calc_by_stroke_type(width: float, type: STROKE_TYPE) -> float:
+	return (((width / 2.0) * (-1.0 if type == STROKE_TYPE.INNER else 1.0)) if (type != STROKE_TYPE.OUTLINE) else 0.0)
 
 
 
-func draw_child(i:int, texture_offset = Vector2.ZERO, i_default:int = 0):
-	var children := []
-	for v in get_children():
-		if (v is Control) and v.visible:		children.append(v)
+func draw_child(i: int,   texture_offset := Vector2.ZERO,   i_default := 0) -> void:
+	var children: Array[Control] = []
 	
-	var child = (children[i]as Control) if i <= children.size() else null
+	for v: Node in get_children():
+		if (v is Control) and v.visible:
+			children.append(v)
+	
+	
+	var child := (children[i]as Control) if i <= children.size() else null
 	if child:
 		childs[str(i_default)] = child
-		if child_count == 1:			texture_offset = Vector2.ZERO
+		
+		if child_count == 1:			
+			if first_in_center and !('_tmp' in child.name):
+				texture_offset = Vector2(0, + radius / 2.0)
+			else:
+				texture_offset = Vector2.ZERO
 		
 		var factor := 1.0
-#		if radius <= children_size * 1.5:
-#			factor = radius / (children_size * 1.5)
 		
 		if children_auto_sizing:
 			factor = (radius / (children_size * 1.5)) * children_auto_sizing_factor
@@ -164,13 +174,13 @@ func draw_child(i:int, texture_offset = Vector2.ZERO, i_default:int = 0):
 
 
 
-func _draw():
+func _draw() -> void:
 	offset = Vector2(
 		self.size.x / 2.0,
 		self.size.y / 2.0,
 	) + circle_offset
 	
-	var smallest = (self.size.y / 2.0)
+	var smallest := (self.size.y / 2.0)
 	if (size.x / 2.0) < smallest:
 		smallest = (self.size.x / 2.0)
 	
@@ -211,22 +221,22 @@ func _draw():
 		child_count -= 1
 	line_rotation_offset = ((360 / float(child_count)) * slots_offset) + line_rotation_offset_default
 	
-	var rads_offset := 0.0
+	rads_offset = 0.0
 	if ROT_OFFSETS.has(child_count):
-		rads_offset = (ROT_OFFSETS[child_count]as float)
+		rads_offset = (ROT_OFFSETS[child_count] as float)
 	
 	
 	if child_count > 0:
-		for i in child_count:
-			var rads = (TAU * i / child_count)
+		for i: int in child_count:
+			var rads := (TAU * i / child_count)
 			rads += rads_offset + deg_to_rad(line_rotation_offset)
 			
 			i += 1
 			
 			
 			
-			var starts_rads = ((TAU * (i - 1)) / child_count) - rads_offset
-			var ends_rads = ((TAU * i) / child_count) - rads_offset
+			var starts_rads: float = ((TAU * (i - 1)) / child_count) - rads_offset
+			var ends_rads: float = ((TAU * i) / child_count) - rads_offset
 			
 			starts_rads -= deg_to_rad(line_rotation_offset)
 			ends_rads -= deg_to_rad(line_rotation_offset)
@@ -237,11 +247,11 @@ func _draw():
 				5, 9:		i -= 1
 			
 			
-			var mid_rads = (starts_rads + ends_rads) / 2.0 * -1
-			var radius_mid = (arc_inner_radius + radius) / 2.0
+			var mid_rads: float = (starts_rads + ends_rads) / 2.0 * -1
+			var radius_mid: float= (arc_inner_radius + radius) / 2.0
 			
 			
-			var draw_pos = (radius_mid * Vector2.from_angle(mid_rads))
+			var draw_pos: Vector2 = Vector2.from_angle(mid_rads) * radius_mid
 			
 			
 			
@@ -295,12 +305,12 @@ func _draw():
 
 
 
-func _process(_delta):
+func _process(new_delta: float) -> void:
 	if radius < 2:		return
 	
 	
 	if animated_pulse_enabled:
-		delta += _delta
+		delta += new_delta
 	
 	if mouse_enabled:
 		var pos_offset = viewport_size - (size + position)
@@ -317,11 +327,11 @@ func _process(_delta):
 				selection = -1
 		elif !first_in_center and child_count == 1:
 			if mouse_radius < radius:
-				selection= 0
+				selection = 0
 		else:
 			var mouse_rads = fposmod(-mouse_pos.angle(), TAU) + deg_to_rad(line_rotation_offset)
 			
-			selection = wrap(      ceil(((mouse_rads / TAU) * child_count)),   0,    child_count      )
+			selection = wrap(      ceil(((mouse_rads / TAU) * child_count) + (-1 if rads_offset == 0.0 else 0)),   0,    child_count      )
 	
 	
 	queue_redraw()
@@ -330,7 +340,7 @@ func _process(_delta):
 
 
 
-func _input(event):
+func _input(event: InputEvent) -> void:
 	if (event.is_action_released(select_action_name)if action_released else event.is_action_pressed(select_action_name)): 
 		if selection != -2:
 			emit_signal('slot_selected', childs[str(selection)]if childs.has(str(selection))else null, selection)
