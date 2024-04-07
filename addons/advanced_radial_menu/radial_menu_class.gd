@@ -331,7 +331,7 @@ func _process(new_delta: float) -> void:
 		else:
 			var mouse_rads = fposmod(-mouse_pos.angle(), TAU) + deg_to_rad(line_rotation_offset)
 			
-			selection = wrap(      ceil(((mouse_rads / TAU) * child_count) + (-1 if rads_offset == 0.0 else 0)),   0,    child_count      )
+			selection = wrap(      ceil(((mouse_rads / TAU) * child_count)),   0,    child_count      )
 	
 	
 	queue_redraw()
