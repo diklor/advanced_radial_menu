@@ -13,12 +13,30 @@ enum STROKE_TYPE { OUTLINE, INNER, OUTER }
 @export							var select_action_name := 'fire'
 @export							var action_released := false
 @export							var enabled := true:		set = _set_drawing
+##Auto size based on this control size
 @export							var auto_sizing := true
 ##Is mouse hover and selection enabled. Works only with "Enabled"
 @export								var mouse_enabled := true:		set = _set_mouse_enabled
 @export								var keep_selection_outside := true
 @export								var first_in_center := false
+##If true, sets "enabled" to false after selection
+@export								var one_shot := false
 @export								var slots_offset: int = 0
+@export_group('Controller')
+##controller works only when running
+@export								var controller_enabled := false
+##If you hold / pressed this action, the controller will work. For example, Button 7 or 8
+##Leave empty to always work
+@export								var focus_action_name := ''
+##Hold "focus_action_name" or just toggle. Works only if "focus_action_name" is not empty
+@export								var focus_action_hold_mode := true
+@export								var move_forward_action_name := 'move_forward'
+@export								var move_left_action_name := 'move_left'
+@export								var move_back_action_name := 'move_back'
+@export								var move_right_action_name := 'move_right'
+##Select center element by pressing action (Works only if "first_in_center" is enabled)
+@export								var center_element_action_name := ''
+@export_range(0.0, 1.0, 0.01)		var controller_deadzone: float = 0.0
 @export_group('Base Circle')
 @export								var circle_offset := Vector2.ZERO
 @export								var color := Color(0,0,0, 0.3) 
@@ -28,9 +46,10 @@ enum STROKE_TYPE { OUTLINE, INNER, OUTER }
 @export_group('Arc', 'arc_')
 @export								var arc_color : = Color.WHITE
 @export_range(0, 1024)				var arc_inner_radius: float = 128.0
+##Limit: -TAU, TAU
 @export_range(-TAU, TAU * 2.0)		var arc_start_angle: float = TAU
 @export_range(-256, 256)			var arc_end_angle: float = 128.0
-@export_range(0, 64)				var arc_detail: int = 32
+@export_range(2, 64)				var arc_detail: int = 32
 @export_range(1, 512)				var arc_line_width: int = 6
 @export								var arc_antialiased := true
 
@@ -53,7 +72,7 @@ enum STROKE_TYPE { OUTLINE, INNER, OUTER }
 @export_range(-1024, 1024, 1)		var hover_offset_start: int = 0
 @export_range(-1024, 1024, 1)		var hover_offset_end: int = 0
 @export_range(-10, 10, 0.1)			var hover_size_factor: float = 1.0
-@export_range(0, 1024, 1)			var hover_detail: int = 96
+@export_range(2, 1024, 1)			var hover_detail: int = 96
 @export								var hover_offset := Vector2.ZERO
 @export_range(-10, 10)				var hover_radial_offset: float = 0.0
 
@@ -86,6 +105,8 @@ var offset := Vector2.ZERO
 
 var rads_offset: float = 0.0
 
+var _is_editor := true
+var _is_focus_action_pressed := false
 
 
 
@@ -114,12 +135,12 @@ func _set_auto_radius(value: bool) -> void:
 
 
 
-
 func _ready() -> void:
 	viewport_size = Vector2(
 		ProjectSettings.get('display/window/size/viewport_width'),
 		ProjectSettings.get('display/window/size/viewport_height')
 	)
+	_is_editor = Engine.is_editor_hint()
 
 
 
@@ -136,12 +157,16 @@ const ROT_OFFSETS: Dictionary = { #Dictionary[int, float]
 
 
 
+
 func get_width_by_stroke_type(width: float, type: STROKE_TYPE) -> float:
 	return (
 		(width / 2.0) * (-1.0 if type == STROKE_TYPE.INNER else 1.0)
 			if (type != STROKE_TYPE.OUTLINE) else
 		0.0
 	)
+
+func get_selected_child() -> Node:
+	return get_child(selection + (1 if first_in_center else -1))
 
 
 
@@ -178,6 +203,16 @@ func draw_child(i: int, radial_position_offset := Vector2.ZERO) -> void:
 		
 		if children_rotate:
 			child.rotation_degrees = 360 - (360 * int(i / float(child_count)))
+
+
+func select() -> void: #select currently hovered element
+	if (selection == -2):
+		selection_canceled.emit()
+		return
+	slot_selected.emit(get_selected_child(), selection)
+	if one_shot:
+		enabled = false
+	selection = -2
 
 
 
@@ -305,38 +340,70 @@ func _draw() -> void:
 
 
 func _process(delta: float) -> void:
-	if radius < 2.0:
-		return
-	
-	
 	if animated_pulse_enabled:
 		tick += delta
 	
+	var pos_offset: Vector2 = viewport_size - (size + position)
+	var size_offset: Vector2 = (viewport_size / 2.0 - (offset - circle_offset))
+	var mouse_pos := -Vector2.ONE #not Vector2.ZERO because mouse can be in that position
+	var controller_pressed := false
+	
 	if mouse_enabled:
-		var pos_offset: Vector2 = viewport_size - (size + position)
-		var size_offset: Vector2 = (viewport_size / 2.0 - (offset - circle_offset))
+		mouse_pos = (get_global_mouse_position() - viewport_size / 2.0) - size_offset + pos_offset - circle_offset
+	if controller_enabled and !_is_editor: #controller works only when running, otherwise spams with errors
+		controller_pressed = true
+		if !focus_action_name.is_empty():
+			if !focus_action_hold_mode:
+				if Input.is_action_just_pressed(focus_action_name):
+					_is_focus_action_pressed = not _is_focus_action_pressed
+				controller_pressed = _is_focus_action_pressed
+			else:
+				controller_pressed = Input.is_action_pressed(focus_action_name)
 		
-		var mouse_pos: Vector2 = (get_global_mouse_position() - viewport_size / 2.0) - size_offset + pos_offset - circle_offset
+		if controller_pressed:
+			var controller_vector := Vector2(
+				Input.get_action_strength(move_right_action_name) - Input.get_action_strength(move_left_action_name),
+				Input.get_action_strength(move_back_action_name) - Input.get_action_strength(move_forward_action_name)
+			).limit_length(1.0) 
+			
+			if (controller_vector.length_squared() > controller_deadzone) \
+				and !( focus_action_name.is_empty() and (controller_vector == Vector2.ZERO) ):
+					mouse_pos = controller_vector * (arc_inner_radius + ((radius - arc_inner_radius) / 2.0))
+			else:
+				controller_pressed = false
+		else:
+			selection = -2
+	
+	if (mouse_pos != -Vector2.ONE):
 		var mouse_radius: float = mouse_pos.length()
-		
 		var prev_selection := selection
-		selection = -2
 		
 		
-		if mouse_radius < arc_inner_radius:
-			if first_in_center:
+		if (mouse_radius < arc_inner_radius):
+			if first_in_center and !controller_pressed:
 				selection = -1
+		elif !_is_editor and !center_element_action_name.is_empty() and Input.is_action_just_pressed(center_element_action_name):
+			selection = -1
+			select()
+		
+		
 		elif !first_in_center and child_count == 1:
 			if mouse_radius < radius:
 				selection = 0
 		else:
 			if keep_selection_outside or (!keep_selection_outside and mouse_radius <= radius):
 				var mouse_rads: float = fposmod(-mouse_pos.angle(), TAU) + deg_to_rad(line_rotation_offset)
+				if (child_count != 9):
+					mouse_rads += (rads_offset if (child_count != 5) else deg_to_rad(-18)) #don't hate me
+				
 				selection = wrap(
 					ceil(((mouse_rads / TAU) * child_count)),
 					0,
 					child_count
 				)
+			elif (!keep_selection_outside and mouse_radius > radius):
+				selection = -2
+			
 		
 		if selection != prev_selection:
 			selection_changed.emit(selection)
@@ -347,12 +414,10 @@ func _process(delta: float) -> void:
 
 
 
-
 func _input(event: InputEvent) -> void:
-	if (event.is_action_released(select_action_name) if action_released else event.is_action_pressed(select_action_name)): 
+	if !select_action_name.is_empty() and (event.is_action_released(select_action_name) if action_released else event.is_action_pressed(select_action_name)): 
 		if selection != -2:
-			slot_selected.emit(get_child(selection + (1 if first_in_center else -1)), selection)
+			select()
 	
 	if event.is_action_pressed('ui_cancel'):
 		emit_signal('selection_canceled')
-
