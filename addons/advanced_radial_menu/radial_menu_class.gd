@@ -105,6 +105,7 @@ var offset := Vector2.ZERO
 
 var rads_offset: float = 0.0
 
+var _temporary_selection: int = -2
 var _is_editor := true
 var _is_focus_action_pressed := false
 
@@ -132,6 +133,11 @@ func _set_children_rotate(value: bool) -> void:
 func _set_auto_radius(value: bool) -> void:
 	if value:
 		radius = int(viewport_size.y / 2.5)
+
+
+func set_temporary_selection(value: int = -2) -> void:
+	_temporary_selection = value
+	selection_changed.emit(clampi(_temporary_selection, -1, child_count - 1))
 
 
 
@@ -347,6 +353,14 @@ func _process(delta: float) -> void:
 	var size_offset: Vector2 = (viewport_size / 2.0 - (offset - circle_offset))
 	var mouse_pos := -Vector2.ONE #not Vector2.ZERO because mouse can be in that position
 	var controller_pressed := false
+	
+	
+	
+	if _temporary_selection != -2:
+		selection = clampi(_temporary_selection, -1, child_count - 1)
+		queue_redraw()
+		return
+	
 	
 	if mouse_enabled:
 		mouse_pos = (get_global_mouse_position() - viewport_size / 2.0) - size_offset + pos_offset - circle_offset
