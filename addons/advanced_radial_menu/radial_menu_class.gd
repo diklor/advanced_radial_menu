@@ -8,6 +8,8 @@ signal selection_canceled
 
 enum STROKE_TYPE { OUTLINE, INNER, OUTER }
 
+const CONSTANT_ANGLE_OFFSET: float = (PI / 2.0)
+
 
 ##Draws layer every frame, will be disabled on start
 @export							var select_action_name := 'fire'
@@ -74,7 +76,7 @@ enum STROKE_TYPE { OUTLINE, INNER, OUTER }
 @export_range(-10, 10, 0.1)			var hover_size_factor: float = 1.0
 @export_range(2, 1024, 1)			var hover_detail: int = 96
 @export								var hover_offset := Vector2.ZERO
-@export_range(-10, 10)				var hover_radial_offset: float = 0.0
+@export_range(-10, 10)				var hover_children_radial_offset: float = 0.0
 
 @export_group('Stroke', 'stroke_')
 @export								var stroke_enabled := false
@@ -102,8 +104,6 @@ var tick: float = 0.0
 var radius: int = 0
 var line_rotation_offset: int = 0
 var offset := Vector2.ZERO
-
-var rads_offset: float = 0.0
 
 var _temporary_selection: int = -2
 var _is_editor := true
@@ -151,18 +151,6 @@ func _ready() -> void:
 
 
 
-const ROT_OFFSETS: Dictionary = { #Dictionary[int, float]
-	3: deg_to_rad(30),
-	5: deg_to_rad(54),
-	7: deg_to_rad(13),
-	9: deg_to_rad(30),
-	11: deg_to_rad(8),
-	13: deg_to_rad(20),
-	15: deg_to_rad(6),
-}
-
-
-
 
 func get_width_by_stroke_type(width: float, type: STROKE_TYPE) -> float:
 	return (
@@ -184,7 +172,7 @@ func draw_child(i: int, radial_position_offset := Vector2.ZERO) -> void:
 			children.append(v)
 	
 	
-	var child: Control = (children[i] if i <= children.size() else null)
+	var child: Control = (children[i] if i <= children.size() else null) # Control?
 	if child != null:
 		if child_count == 1:
 			if first_in_center and !child.name.begins_with('__'): #ignore children with __ prefix
@@ -261,39 +249,26 @@ func _draw() -> void:
 	
 	line_rotation_offset = ((360 / float(child_count)) * slots_offset) + line_rotation_offset_default
 	
-	rads_offset = 0.0
-	if ROT_OFFSETS.has(child_count):
-		rads_offset = ROT_OFFSETS[child_count]
-	
 	
 	
 	
 	if child_count > 0:
 		for i: int in child_count:
-			var rads := (TAU * i / child_count)
-			rads += rads_offset + deg_to_rad(line_rotation_offset)
-			i += 1
+			var angle := i * (TAU / child_count) - CONSTANT_ANGLE_OFFSET # CONSTANT_ANGLE_OFFSET is magic expression that fixes unaligned circle division
+			angle += deg_to_rad(line_rotation_offset)
 			
+			var start_rads: float = (i - 1) * (TAU / child_count) + CONSTANT_ANGLE_OFFSET - deg_to_rad(line_rotation_offset)
+			var end_rads: float = i * (TAU / child_count) + CONSTANT_ANGLE_OFFSET - deg_to_rad(line_rotation_offset)
 			
-			var starts_rads: float = ((TAU * (i - 1)) / child_count) - rads_offset - deg_to_rad(line_rotation_offset)
-			var ends_rads: float = ((TAU * i) / child_count) - rads_offset - deg_to_rad(line_rotation_offset)
-			
-			match child_count:
-				1:
-					ends_rads += 0.4188 #deg_to_rad(24)
-				5, 9:
-					i -= 1
-			
-			
-			var mid_rads: float = (starts_rads + ends_rads) / 2.0 * -1.0
+			var mid_rads: float = -(start_rads + end_rads) / 2.0
 			var radius_mid: float = (arc_inner_radius + radius) / 2.0
 			
 			
 			var draw_pos: Vector2 = Vector2.from_angle(mid_rads) * radius_mid
-			draw_pos *= (1.0 + hover_radial_offset) if (hover_radial_offset != 0.0 and selection == i and selection >= 0) else 1.0
-			draw_pos += hover_offset if (selection == i and selection >= 0) else Vector2.ZERO
+			if (selection == i and selection >= 0):
+				draw_pos *= (1.0 + hover_children_radial_offset)
+				draw_pos += hover_offset
 			
-			i = wrap(i, 0, child_count)
 			
 			if (arc_inner_radius < radius) and (selection == i):
 				if (child_count == 1):
@@ -304,9 +279,9 @@ func _draw() -> void:
 					var points_outer := PackedVector2Array()
 					
 					for j: int in points_per_arc:
-						var angle := (starts_rads + j * (ends_rads - starts_rads) / float(points_per_arc))
-						points_inner.append(offset + ((arc_inner_radius + hover_offset_start)	* Vector2.from_angle(TAU - angle) * hover_size_factor))
-						points_outer.append(offset + ((radius + hover_offset_end) 				* Vector2.from_angle(TAU - angle) * hover_size_factor))
+						var point_angle: float = (start_rads + j * (end_rads - start_rads) / float(points_per_arc)) 
+						points_inner.append(offset + ((arc_inner_radius + hover_offset_start)	* Vector2.from_angle(TAU - point_angle) * hover_size_factor))
+						points_outer.append(offset + ((radius + hover_offset_end) 				* Vector2.from_angle(TAU - point_angle) * hover_size_factor))
 					
 					points_outer.reverse()
 					
@@ -317,7 +292,7 @@ func _draw() -> void:
 			
 			
 			if child_count > 1:
-				var point := Vector2.from_angle(rads)
+				var point := Vector2.from_angle(angle)
 				draw_line(
 					offset +  point * arc_inner_radius,
 					offset +  point * radius,
@@ -326,7 +301,9 @@ func _draw() -> void:
 					line_antialised
 				)
 			
-			draw_child(i + (1 if first_in_center else -1), draw_pos)
+			if first_in_center:
+				i += 1
+			draw_child(i, draw_pos)
 		
 		if first_in_center:
 			draw_child(0, Vector2.ZERO)
@@ -406,10 +383,7 @@ func _process(delta: float) -> void:
 				selection = 0
 		else:
 			if keep_selection_outside or (!keep_selection_outside and mouse_radius <= radius):
-				var mouse_rads: float = fposmod(-mouse_pos.angle(), TAU) + deg_to_rad(line_rotation_offset)
-				if (child_count != 9):
-					mouse_rads += (rads_offset if (child_count != 5) else deg_to_rad(-18)) #don't hate me
-				
+				var mouse_rads: float = fposmod(-mouse_pos.angle() - CONSTANT_ANGLE_OFFSET, TAU) + deg_to_rad(line_rotation_offset)
 				selection = wrap(
 					ceil(((mouse_rads / TAU) * child_count)),
 					0,
