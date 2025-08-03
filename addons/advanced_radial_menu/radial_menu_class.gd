@@ -52,10 +52,10 @@ const CONSTANT_ANGLE_OFFSET: float = (PI / 2.0)
 
 @export_group('Arc', 'arc_')
 @export								var arc_color : = Color.WHITE
-@export_range(0, 1024)				var arc_inner_radius: float = 128.0
+@export_range(0, 1024)				var arc_inner_radius: float = 32.0
 ## Limit: -TAU, TAU (-PI * 2, PI * 2)
 @export_range(-TAU, TAU * 2.0)		var arc_start_angle: float = TAU
-@export_range(-256, 256)			var arc_end_angle: float = 128.0
+@export_range(-TAU * 2.0, TAU)		var arc_end_angle: float = 0.0
 @export_range(2, 64)				var arc_detail: int = 32
 @export_range(1, 512)				var arc_line_width: int = 6
 @export								var arc_antialiased := true
@@ -234,11 +234,11 @@ func _draw_child(i: int, radial_position_offset := Vector2.ZERO) -> void:
 
 
 func _draw() -> void:
-	_current_menu_offset = (size / 2.0) + circle_offset
+	_current_menu_offset = (self.size / 2.0) + circle_offset
 	
-	var smallest_height := int(size.y / 2.0)
-	if (size.x / 2.0) < smallest_height:
-		smallest_height = (size.x / 2.0)
+	var smallest_height := int(self.size.y / 2.0)
+	if (self.size.x / 2.0) < smallest_height:
+		smallest_height = (self.size.x / 2.0)
 	
 	_current_menu_radius = smallest_height
 	
@@ -341,7 +341,7 @@ func _process(delta: float) -> void:
 	if animated_pulse_enabled:
 		_time_tick += delta
 	
-	var pos_offset: Vector2 = _last_viewport_size - (size + position)
+	var pos_offset: Vector2 = _last_viewport_size - (self.size + self.get_global_rect().position)
 	var size_offset: Vector2 = (_last_viewport_size / 2.0 - (_current_menu_offset - circle_offset))
 	var mouse_pos := -Vector2.ONE #not Vector2.ZERO because mouse can be in that position
 	var controller_pressed := false
@@ -355,7 +355,7 @@ func _process(delta: float) -> void:
 	
 	
 	if mouse_enabled:
-		mouse_pos = (get_global_mouse_position() - _last_viewport_size / 2.0) - size_offset + pos_offset - circle_offset
+		mouse_pos = (self.get_global_mouse_position() - _last_viewport_size / 2.0) - size_offset + pos_offset - circle_offset
 	if controller_enabled and !_is_editor: #controller works only when running, otherwise spams with errors
 		controller_pressed = true
 		if !focus_action_name.is_empty():
