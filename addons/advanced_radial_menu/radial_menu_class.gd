@@ -241,6 +241,22 @@ func _draw_child(i: int, radial_position_offset := Vector2.ZERO) -> void:
 			child.rotation_degrees = 360 - (360 * int(i / float(_local_children_count)))
 
 
+func _draw_section_lines() -> void:
+	if _local_children_count <= 1:
+		return
+
+	for i: int in _local_children_count:
+		var angle := i * (TAU / _local_children_count) - CONSTANT_ANGLE_OFFSET
+		angle += deg_to_rad(_line_rotation_offset)
+
+		var point := Vector2.from_angle(angle)
+		draw_line(
+			_current_menu_offset + point * arc_inner_radius,
+			_current_menu_offset + point * _current_menu_radius,
+			line_color,
+			line_width,
+			line_antialised
+		)
 
 
 func _draw() -> void:
@@ -315,16 +331,6 @@ func _draw() -> void:
 					)
 			
 			
-			if _local_children_count > 1:
-				var point := Vector2.from_angle(angle)
-				draw_line(
-					_current_menu_offset +  point * arc_inner_radius,
-					_current_menu_offset +  point * _current_menu_radius,
-					line_color,
-					line_width,
-					line_antialised
-				)
-			
 			if first_in_center:
 				i += 1
 			
@@ -344,6 +350,8 @@ func _draw() -> void:
 		if _time_tick >= 100.0:
 			_time_tick = 0.0
 		draw_arc(_current_menu_offset, (_current_menu_radius - animated_pulse_offset + animated_pulse_intensity + sin(_time_tick * animated_pulse_speed) * animated_pulse_intensity), TAU, 128, arc_detail, animated_pulse_color, arc_line_width, arc_antialiased)
+
+	_draw_section_lines()
 
 
 
