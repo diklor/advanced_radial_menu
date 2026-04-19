@@ -132,7 +132,17 @@ func force_update() -> void:
 	_update_children()
 
 func get_selected_child() -> Node:
-	return get_child(_current_selection_idx + (1 if first_in_center else -1))
+	if _current_selection_idx == -1:
+		if first_in_center and _children_list.size() > 0:
+			return _children_list[0]
+
+		return null
+
+	var child_idx := _current_selection_idx + (1 if first_in_center else 0)
+	if child_idx >= 0 and child_idx < _children_list.size():
+		return _children_list[child_idx]
+
+	return null
 
 func select() -> void: # select currently hovered element. Like trigerring action "select_action_name"
 	if (_current_selection_idx == -2):
