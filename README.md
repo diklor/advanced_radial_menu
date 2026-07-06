@@ -2,18 +2,32 @@
 
 Advanced radial menu node
 
+![icon](https://f003.backblazeb2.com/file/ayanami/files/Lnc-JLcvf.jpg)
+
 Usage
-https://youtu.be/PgHafAvnUGw
+[https://youtu.be/PgHafAvnUGw](https://ayanami.app/_iwkUXrU6)
 
-![icon](/preview.png)
 
-## 1.3 Update!
+## 1.4 Big rewrite!
+
+### - !!! Changed: children are now located in clockwise order
+- Changed: `animated_pulse_offset` parameter works the opposite way (more logically). Negative values are offsetting inside the circle
+- Changed: Children rotation and scale are changed only once when:
+- - Child added, removed or reordered
+- - Radial menu visibility is changed (but you can use `radial_menu.force_update()`)
+- - Changed one of the following parameters: `enabled`, `first_in_center`, `children_rotate` 
+- Added new parameter `children_distance_offset` - offsets children from the center
+- Added new parameter `children_rotate_inverted` - inverts children rotation (towards or away from center)
+- Removed parameter `children_optimized`. Children collection is not happening on every frame and optimized by default
+- Extremely optimized and more fast
+- More of static typing
+
+## 1.3 Update
 * Temporary selections
 * Signal docs
 * .gdignore finally
-
-## 1.2 Update
 * Controller support and mouse detection fixes
+
 
 
 # Temporarily selection
@@ -72,8 +86,7 @@ What is **deadzone**?
 
 ![deadzone.jpg](https://i.postimg.cc/QCgLZL9k/fcc4ae0b.jpg)
 
-The threshold of detection. For example, in the picture of the dedzone is 0.2, m
-The values ​​below or equals 0.2 will be ignored
+The threshold of detection. For example, in the picture of the deadzone is 0.2, means the values ​​below or equals 0.2 will be ignored
 
 
 | [Download `example.tscn` (downgit)](https://downgit.github.io/#/home?url=https://github.com/diklor/advanced_radial_menu/blob/main/example.tscn) |
