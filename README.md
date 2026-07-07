@@ -4,7 +4,7 @@ Advanced radial menu node
 
 ![icon](https://f003.backblazeb2.com/file/ayanami/files/Lnc-JLcvf.jpg)
 
-### Usage
+### Usage video
 https://ayanami.app/_iwkUXrU6
 
 
